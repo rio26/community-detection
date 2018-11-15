@@ -1,6 +1,12 @@
 import networkx as nx
 import scipy as sp
 import matplotlib.pyplot as plt
+import numpy as np
+from time import time
+import numpy.linalg as LA
+
+# magic numbers
+_smallnumber = 1E-5
 
 class GNMF:
     """
@@ -16,7 +22,7 @@ class GNMF:
       -- timelimit, maxiter: limit of time and maximum iterations (default 1000)
       -- Output: w, h
     """
-    def __init__(self, v, l, w_init = None, h_init = None, r = None):
+    def __init__(self, v, l = None, w_init = None, h_init = None, r = None):
         self.v = v
         self.l = l
 
@@ -55,13 +61,59 @@ class GNMF:
             error = None
         return error
 
+    def mur_solve(self, tol = None, timelimit = None, max_iter = None, r = None):
+            """
+            Input:
+              -- V: m x n matrix, the dataset
+
+            Optional Input/Output:
+
+              -- tol: tolerance error (stopping condition)
+              -- timelimit, maxiter: limit of time and maximum iterations (default 1000)
+              -- Output: w, h
+              -- r: decompose the marix m x n  -->  (m x r) x (r x n), default 2
+            """
+            if (tol is None):
+                self.tol = _smallnumber
+            else:
+                self.tol = tol
+
+            if (timelimit is None):
+                self.timelimit = 3600
+            else:
+                self.timelimit = timelimit
+
+            if (max_iter is None):
+                self.max_iter = 1000
+            else:
+                self.max_iter = max_iter
+                print(self.max_iter)
+
+            # n_iter = 0
+            for n_iter in range(self.max_iter):
+                self.h = np.multiply(self.h, (np.dot(self.w.T, self.v) /  (np.dot(np.dot(self.w.T, self.w), self.h) )))
+                # denominator = np.dot(np.dot(self.w.T, self.w), self.h) + 2 ** -8
+                self.w = np.multiply(self.w, (np.dot(self.v, self.h.T) / (np.dot(self.w, np.dot(self.h, self.h.T)) )))
+                # denominator = np.dot(self.w, np.dot(self.h, self.h.T)) + 2**-8
+
+            # print('w', np.shape(self.w), 'h', np.shape(self.h)) # w (10304, 2) h (2, 10)
+            # return np.dot(self.w, self.h)
+            return self.w
+
+
 # read .gml
-G = nx.read_gml('dolphins-v62-e159/dolphins.gml')
-# print(len(G.node)) 62 vertices
+G = nx.read_gml('dolphins-v62-e159/dolphins.gml') # 62 vertices
 
 # for adjacency matrix
-A = nx.adjacency_matrix(G)
+A = nx.adjacency_matrix(G)   #(62，62)
+A_nmf = GNMF(A, r=2)
 
+print("Start running...")
+t0 = time()
+reult = A_nmf.mur_solve(max_iter=2000)
+t1 = time()
+
+print('Final error is: ', A_nmf.frobenius_norm(), 'Time taken: ', t1 - t0)
 
 # # Print adjacency_matrix
 # # You may prefer `nx.from_numpy_matrix`.
