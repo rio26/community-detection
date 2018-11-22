@@ -64,8 +64,8 @@ class SNMF():
             print("batch index is: ", lo)
             batch_matrix = self.x[lo: (lo + self.mini_batch_size), lo: (lo + self.mini_batch_size)]
             # print("batch_matrix is: \n", batch_matrix.shape) # dolphin case is (7,7)
-            print("some entries: ", batch_matrix[1,5])
-    # def mini_batch_solver(self, mini_batch_size = 64 , seed = 0, a)
+            
+
 
 
     def train(self):
@@ -126,22 +126,16 @@ class SNMF():
             self.P[i, :] += self.alpha * (e * self.Q[j, :] - self.beta * self.P[i,:])
             self.Q[j, :] += self.alpha * (e * self.P[i, :] - self.beta * self.Q[j,:])
 
-    def get_rating(self, i, j):
-        """
-        Get the predicted rating of user i and item j
-        """
-        prediction = self.b + self.b_u[i] + self.b_i[j] + self.P[i, :].dot(self.Q[j, :].T)
-        return prediction
-
-
-
 # read .gml
-G = nx.read_gml('dolphins-v62-e159/dolphins.gml') # 62 vertices
+print("Reading Data...")
+G = nx.read_gml('polical-blogs-v1490-e19090/polblogs.gml') #  vertices
 
 # for adjacency matrix
+print("Converting to adjacency matrix...")
 A = nx.adjacency_matrix(G)   #(62，62)
+
 A_nmf = SNMF(A, r=2, batch_number=5)
-# print("A is ~~~~", A[11,53], "\n with shape: ", A.shape) #(62, 62)
+print("A has shape :", A.shape) #(62, 62)
 
 print("Staring error is: ", A_nmf.frobenius_norm())
 print("Start running...")
