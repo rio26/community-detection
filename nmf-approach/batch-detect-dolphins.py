@@ -42,12 +42,7 @@ class SNMF():
         self.r = r
         self.mini_batch_size = math.ceil(x.shape[0] / 10)
         print("the matrix's row and column are: ", self.x.shape[0], self.x.shape[1])
-
-        if (h_init is None):
-            self.h = np.random.rand(self.x.shape[0], self.r)
-            # print('init_h: ', self.h , 'with size: ', np.shape(self.h))
-        else:
-            self.h = np.matrix(h_init)
+        self.h = h_init
 
 
     def frobenius_norm(self):
@@ -59,7 +54,7 @@ class SNMF():
             error = None
         return error
 
-    def sgd_solver(self, alpha = 0.002, beta = 0.02, max_iter = 100):
+    def sgd_solver(self, max_iter = 100):
         for iter in range(max_iter):
             lo = random.randint(0, (self.x.shape[0] - self.mini_batch_size - 1))
             # print("batch index is: ", lo)
@@ -91,40 +86,42 @@ class SNMF():
 
 # read .gml
 G = nx.read_gml('dolphins-v62-e159/dolphins.gml') # 62 vertices
+cluster_num = 2
 
-# for adjacency matrix
-A = nx.adjacency_matrix(G)   #(62，62)
-A_nmf = SNMF(A, r=2, batch_number=10)
-# print("A is ~~~~", A[11,53], "\n with shape: ", A.shape) #(62, 62)
+
+A = nx.adjacency_matrix(G)   #(62，62)                              # get adjacency matrix
+initial_h = np.random.rand(A.shape[0], cluster_num)                 # h's initialization
+grid1 = np.dot(initial_h,initial_h.T)                               # x's initial value
+A_nmf = SNMF(A, r=cluster_num,  h_init = initial_h, batch_number=1) # call snmf's constructor
+
+
 
 print("Staring error is: ", A_nmf.frobenius_norm())
 print("Start running...")
 t0 = time()
-result = A_nmf.sgd_solver(max_iter=10)
+result = A_nmf.sgd_solver(max_iter=50)                              # run gd, return h
 t1 = time()
 
 print('Final error is: ', A_nmf.frobenius_norm(), 'Time taken: ', t1 - t0)
 
 
 """
---------------------PLOT
+----------------------------------------PLOT----------------------------------------
 """
-grid = np.dot(result,result.T)
 
-fig, ax = plt.subplots()
-cax = ax.imshow(grid, interpolation='nearest',extent=[0,62,0,62], aspect='auto')
+grid2 = np.dot(result,result.T)     # result matrix
 
-cbar = fig.colorbar(cax, ticks=[-1, 0, 1])
-cbar.ax.set_yticklabels(['< -1', '0', '> 1']) 
-# ax.set_title('Gaussian noise with horizontal colorbar')
+fig = plt.figure()
 
-# fig, (ax1, ax2) = plt.subplots(nrows=2, figsize=(6,10))
+# subplot 1, initial matrix
+ax = fig.add_subplot(121)
+im = ax.imshow(grid1)
+plt.colorbar(im)
 
-# ax1.imshow(grid, extent=[0,62,62,0], aspect='auto')
-# ax1.set_title('Auto-scaled Aspect')
+# subplot 2, color map
+ax = fig.add_subplot(122)
+im = ax.imshow(grid2)
+plt.colorbar(im)
 
-# # ax2.imshow(grid, extent=[0,62,62,0], aspect=100)
-# # ax2.set_title('Manually Set Aspect')
-
-# plt.tight_layout()
+plt.tight_layout()
 plt.show()
