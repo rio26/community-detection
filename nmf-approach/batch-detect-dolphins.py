@@ -49,7 +49,7 @@ class SNMF():
         if(self.batch_number == 1):        # normal MUR
             for iter in range(self.max_iter):
                 self.errors[iter] = np.linalg.norm(self.x - np.dot(self.h, self.h.T), 'fro') # record error
-
+                print(self.errors[iter])
                 tmp_x = self.x.todense()
                 self.h = np.multiply(self.h, (np.dot(tmp_x, self.h) / (np.dot(np.dot(self.h, self.h.T) ,self.h) + 2 ** -8)))
         else:
