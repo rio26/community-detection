@@ -96,7 +96,7 @@ initial_h = np.asmatrix(np.random.rand(A.shape[0], cluster_num))                
 
 grid1 = A.todense()                                                 # initial x
 grid2 = np.dot(initial_h,initial_h.T)                               # initial h
-A_nmf = SNMF(A, r=cluster_num,  h_init = initial_h, batch_number=1, max_iter=50) # call snmf's constructor
+A_nmf = SNMF(A, r=cluster_num,  h_init = initial_h, batch_number=1, max_iter=5000) # call snmf's constructor
 
 
 
@@ -107,7 +107,6 @@ result = A_nmf.sgd_solver()                              # run gd, return h
 t1 = time()
 
 print('Final error is: ', A_nmf.frobenius_norm(), 'Time taken: ', t1 - t0)
-
 
 
 """

@@ -98,7 +98,7 @@ print(type(initial_h))
 
 grid1 = A.todense()                                                 # initial x
 grid2 = np.dot(initial_h,initial_h.T)                               # initial h
-A_nmf = SNMF(x=A, r=cluster_num,  h_init = initial_h, batch_number=1, max_iter=3000) # call snmf's constructor
+A_nmf = SNMF(x=A, r=cluster_num,  h_init = initial_h, batch_number=1, max_iter=1001) # call snmf's constructor
 
 
 
@@ -108,12 +108,24 @@ t0 = time()
 result = A_nmf.sgd_solver()                              # run gd, return h
 t1 = time()
 
-print('Final error is: ', A_nmf.frobenius_norm(), 'Time taken: ', t1 - t0)
+# print(result[0,0])
+# print('Final error is: ', A_nmf.frobenius_norm(), 'Time taken: ', t1 - t0)
 
+dolphins = sio.loadmat('dolphins-v62-e159/dolphins_rlabels')
+label = dolphins['labels'].T
 
+correct_count = 0
+for i in range(result.shape[0]):
+    if result[i,0] < result[i,1]:
+        print(label[i], "-- 1")
+        if label[i] == 1:
+            correct_count += 1
+    else:
+        print(label[i],  "-- 2")
+        if label[i] == 2:
+            correct_count += 1
 
-
-
+print(correct_count)
 
 """
 ----------------------------------------PLOT----------------------------------------
