@@ -1,5 +1,13 @@
 import numpy as np
 import scipy.io as sio
+import random
+
+# a = np.asmatrix(np.zeros((2,2)))
+hi = 5 #(not include this number)
+seq = list(range(0,hi))
+a = random.sample(seq,3)
+print("a: ", a, "type: ", type(a), "\n a's 1,2,3 values: ", a[0], a[1], a[2])
+# print("a's value check: ", a[0,0])
 
 
 # t1 = np.random.rand(2,2)
@@ -22,8 +30,8 @@ import scipy.io as sio
 # print(np.multiply(c,d))
 # print(np.dot(c,d))
 
-dolphin = sio.loadmat('dolphins-v62-e159/dolphins_rlabels')
-label = dolphin['labels'].T
-print(label.shape)
+# dolphin = sio.loadmat('dolphins-v62-e159/dolphins_rlabels')
+# label = dolphin['labels'].T
+# print(label.shape)
 
-print(label[1])
+# print(label[1])
