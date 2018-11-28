@@ -55,14 +55,14 @@ class SNMF():
                 denominator = (((self.h*self.h.T)*self.h) + 2 ** -8)
                 self.h = np.multiply(self.h, np.divide(numerator, denominator))
 
-                count = 0
-                for i in range(self.h.shape[0]):
-                    for j in range(self.h.shape[1]):
-                        # print(self.h[i,j])
-                        if self.h[i,j]<0:
-                            count += 1
-                            print("(", i, ",", j, ")")
-                print("negative numbers:", count)
+                # count = 0
+                # for i in range(self.h.shape[0]):
+                #     for j in range(self.h.shape[1]):
+                #         # print(self.h[i,j])
+                #         if self.h[i,j]<0:
+                #             count += 1
+                #             print("(", i, ",", j, ")")
+                # print("negative numbers:", count)
 
         else:
             for iter in range(self.max_iter):  # stochastic MUR     
@@ -91,12 +91,14 @@ A = nx.adjacency_matrix(G)   #(62，62)                                         
 # print("line 126, type of dense A:" , type(A.todense()))                        # <class 'scipy.sparse.csr.csr_matrix'>,  
                                                                                  # to dense: <class 'numpy.matrixlib.defmatrix.matrix'>
 initial_h = np.asmatrix(np.random.rand(A.shape[0], cluster_num))                 # h's initialization, as a matrix
+# initial_h = np.asmatrix(np.ones((A.shape[0], cluster_num)))
+print(type(initial_h))
 # print("line 127, type of initial_h" , type(initial_h), "shape: ", initial_h.shape)
 # print("initial h [1]::::: ",initial_h[0,0])
 
 grid1 = A.todense()                                                 # initial x
 grid2 = np.dot(initial_h,initial_h.T)                               # initial h
-A_nmf = SNMF(A, r=cluster_num,  h_init = initial_h, batch_number=1, max_iter=5000) # call snmf's constructor
+A_nmf = SNMF(x=A, r=cluster_num,  h_init = initial_h, batch_number=1, max_iter=1001) # call snmf's constructor
 
 
 
@@ -106,14 +108,30 @@ t0 = time()
 result = A_nmf.sgd_solver()                              # run gd, return h
 t1 = time()
 
-print('Final error is: ', A_nmf.frobenius_norm(), 'Time taken: ', t1 - t0)
+# print(result[0,0])
+# print('Final error is: ', A_nmf.frobenius_norm(), 'Time taken: ', t1 - t0)
 
+dolphins = sio.loadmat('dolphins-v62-e159/dolphins_rlabels')
+label = dolphins['labels'].T
+
+correct_count = 0
+for i in range(result.shape[0]):
+    if result[i,0] < result[i,1]:
+        print(label[i], "-- 1")
+        if label[i] == 1:
+            correct_count += 1
+    else:
+        print(label[i],  "-- 2")
+        if label[i] == 2:
+            correct_count += 1
+
+print(correct_count)
 
 """
 ----------------------------------------PLOT----------------------------------------
 """
 
-
+34425332
 plt.plot(A_nmf.get_error_trend())
 plt.show()
 
