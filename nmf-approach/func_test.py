@@ -2,11 +2,13 @@ import numpy as np
 import scipy.io as sio
 import random
 
+print(2**-8)
+
 # a = np.asmatrix(np.zeros((2,2)))
-hi = 5 #(not include this number)
-seq = list(range(0,hi))
-a = random.sample(seq,3)
-print("a: ", a, "type: ", type(a), "\n a's 1,2,3 values: ", a[0], a[1], a[2])
+# hi = 5 #(not include this number)
+# seq = list(range(0,hi))
+# a = random.sample(seq,3)
+# print("a: ", a, "type: ", type(a), "\n a's 1,2,3 values: ", a[0], a[1], a[2])
 # print("a's value check: ", a[0,0])
 
 

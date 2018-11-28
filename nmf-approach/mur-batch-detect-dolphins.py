@@ -50,10 +50,15 @@ class SNMF():
             error = None
         return error
 
-    def bgd_solver(self, eps = 0.001, debug = None):
+    def bgd_solver(self, alpha = 0.01, eps = 0.00001, debug = None):
         if(self.batch_number == 1):        # normal MUR
             for iter in range(self.max_iter):
                 self.errors[iter] = LA.norm(self.x - self.h * self.h.T)
+
+                if (self.errors[iter] > 1) and (abs(self.errors[iter]-self.errors[iter-1])  < eps):
+                    # print("error1: ", self.errors[iter], "error2:", self.errors[iter-1])
+                    print("stop condition met at iteration: ", iter)
+                    return self.h
 
                 numerator = self.x*self.h
                 denominator = (((self.h*self.h.T)*self.h) + 2 ** -8)
@@ -72,8 +77,9 @@ class SNMF():
             batch_h = np.asmatrix(np.zeros((self.mini_batch_size,self.r)))
             for iter in range(self.max_iter):  # stochastic MUR     
                 self.errors[iter] = np.linalg.norm(self.x - self.h * self.h.T, 'fro') # record error
-                if self.errors[iter] < eps:
-                    print("stop condition met!")
+                if (self.errors[iter] > 1) and (abs(self.errors[iter]-self.errors[iter-1])  < eps):
+                    # print("error1: ", self.errors[iter], "error2:", self.errors[iter-1])
+                    print("stop condition met at iteration: ", iter)
                     return self.h
 
                 tmp_list = self.generate_random_numbers(upper_bound = self.batch_number_range, num = self.mini_batch_size)
@@ -93,10 +99,16 @@ class SNMF():
                 # print("batch x:", self.batch_x, "size", self.batch_x.shape, "type:", type(self.batch_x))
                 # print("batch h:", batch_h, "size", batch_h.shape, "type:", type(batch_h))
 
-                numerator = self.batch_x * batch_h
-                denominator = (((batch_h*batch_h.T)*batch_h) + 2 ** -8)
-                update = np.multiply(batch_h, np.divide(numerator, denominator))
+                # numerator = self.batch_x * batch_h
+                # denominator = (((batch_h*batch_h.T)*batch_h) + 0.00001)
+                # update = np.multiply(batch_h, np.divide(numerator, denominator))
                 # print("line 99, update type: ", type(update), "shape:", update.shape, "update[i,:]", update[1,:])
+                # a= batch_h * batch_h.T * batch_h
+                # b= self.batch_x * batch_h
+                # print("a", a, "b", b)
+                grad = 4 * (batch_h * batch_h.T * batch_h - self.batch_x * batch_h)
+                # print("grad", grad)
+                update = batch_h - alpha * grad
                 i = 0
                 while i < len(tmp_list):
                     self.h[tmp_list[i],:] = update[i,:]   
@@ -113,7 +125,7 @@ class SNMF():
                 # print("Test Tmp shape: ", np.shape(tmp), "and its value: \n", tmp)
  
         return self.h
- 
+
     def get_error_trend(self):
         return self.errors
 
@@ -138,14 +150,14 @@ print(type(initial_h))
 
 grid1 = A.todense()                                                 # initial x
 grid2 = np.dot(initial_h,initial_h.T)                               # initial h
-A_nmf = SNMF(x=A, r=cluster_num,  h_init = initial_h, batch_number=2, max_iter=1) # call snmf's constructor
+A_nmf = SNMF(x=A, r=cluster_num,  h_init = initial_h, batch_number=10, max_iter=10000) # call snmf's constructor
 
 
 
 print("Staring error is: ", A_nmf.frobenius_norm())
 print("Start running...")
 t0 = time()
-result = A_nmf.bgd_solver()                              # run gd, return h
+result = A_nmf.bgd_solver(alpha = 0.01)                              # run gd, return h
 t1 = time()
 
 # print(result[0,0])
