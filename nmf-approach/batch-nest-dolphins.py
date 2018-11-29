@@ -5,7 +5,6 @@ import networkx as nx
 import scipy as sp
 import matplotlib.pyplot as plt
 from matplotlib import cm
-#from scipy.stats import entropy
 from time import time
 import random, math
 
@@ -50,7 +49,7 @@ class SNMF():
             error = None
         return error
 
-    def bgd_solver(self, alpha = 0.01, eps = None, debug = None):
+    def bgd_solver(self, alpha = 0.5, beta = 0.8 , l = 2 , eps = None, debug = None):
         if(self.batch_number == 1):        # normal MUR
             for iter in range(self.max_iter):
                 self.errors[iter] = LA.norm(self.x - self.h * self.h.T)
@@ -74,28 +73,28 @@ class SNMF():
                 # print("negative numbers:", count)
 
         else:
-            batch_h = np.asmatrix(np.zeros((self.mini_batch_size,self.r)))
+            batch_h = np.asmatrix(np.zeros((self.mini_batch_size, self.r)))         # initialize size of the batch matrix
             for iter in range(self.max_iter):  # stochastic MUR     
                 self.errors[iter] = np.linalg.norm(self.x - self.h * self.h.T, 'fro') # record error
                 # if (self.errors[iter] > 1) and (abs(self.errors[iter]-self.errors[iter-1])  < eps):
                 #     # print("error1: ", self.errors[iter], "error2:", self.errors[iter-1])
                 #     print("stop condition met at iteration: ", iter)
                 #     return self.h
+                tmp_list = self.generate_random_numbers(upper_bound = self.batch_number_range, num = self.mini_batch_size) # random initilized number list
+                
 
-                tmp_list = self.generate_random_numbers(upper_bound = self.batch_number_range, num = self.mini_batch_size)
-                # print("tmp_list: ", tmp_list, "type: ", type(tmp_list), "length: ", len(tmp_list))
-                
-                
-                # an ugly matrix to create batch matrix
-                i = 0
-                while i < len(tmp_list):
-                    j = i
-                    batch_h[i,:] = self.h[tmp_list[i],:]
-                    while j < len(tmp_list):
-                        self.batch_x[i,j] = self.x[tmp_list[i],tmp_list[j]]
-                        self.batch_x[j,i] = self.x[tmp_list[i],tmp_list[j]]
-                        j += 1
-                    i += 1
+                batch_h = self.create_batch(tmp_list, batch_h)
+
+                # # an ugly matrix to create random batch matrix
+                # i = 0
+                # while i < len(tmp_list):
+                #     j = i
+                #     batch_h[i,:] = self.h[tmp_list[i],:]
+                #     while j < len(tmp_list):
+                #         self.batch_x[i,j] = self.x[tmp_list[i],tmp_list[j]]
+                #         self.batch_x[j,i] = self.x[tmp_list[i],tmp_list[j]]
+                #         j += 1
+                #     i += 1
                 # print("batch x:", self.batch_x, "size", self.batch_x.shape, "type:", type(self.batch_x))
                 # print("batch h:", batch_h, "size", batch_h.shape, "type:", type(batch_h))
 
@@ -106,34 +105,24 @@ class SNMF():
                 # a= batch_h * batch_h.T * batch_h
                 # b= self.batch_x * batch_h
                 # print("a", a, "b", b)
-                grad = 4 * (batch_h * batch_h.T * batch_h - self.batch_x * batch_h)
+                
+                # while not check_armijo():
+                #     print(check_armijo)
+                grad = self.grad(self.batch_x, batch_h)
+                
                 # print("grad", grad)
-                update = batch_h - alpha * grad
+                update = self.projection(batch_h - alpha * grad)
 
                 i = 0
                 while i < len(tmp_list):
-                    j = 0
-                    count = 0
-                    while j < update.shape[1]:
-                        if update[i,j] < 0:
-                            update[i,j] = 0
-                            count += 1
-                        j += 1
-
                     self.h[tmp_list[i],:] = update[i,:]   
                     i += 1
-                    # print("count : ",count)
 
                 # lo = random.randint(0, (self.x.shape[0] - self.mini_batch_size - 1))
                 # # print("batch index is: ", lo)
                 # batch_x = self.x[lo: (lo + self.mini_batch_size), lo: (lo + self.mini_batch_size)].todense()  ## correct
                 # batch_h = self.h[lo: (lo + self.mini_batch_size), :] ##correct
                 
-                # batch_h = 
-
-                # self.h[lo: (lo + self.mini_batch_size), :] = np.multiply(batch_h, ((batch_x * batch_h) / (((batch_h* batch_h.T)*batch_h) + 2 ** -8)))
-                # print("Test Tmp shape: ", np.shape(tmp), "and its value: \n", tmp)
- 
         return self.h
 
     def get_error_trend(self):
@@ -143,6 +132,38 @@ class SNMF():
     def generate_random_numbers(self, upper_bound, num):
         seq = list(range(0,upper_bound))
         return random.sample(seq,num)
+
+    def projection(self, matrix):
+        i = 0
+        count = 0
+        while i < matrix.shape[0]:
+            j = 0
+            while j < matrix.shape[1]:
+                if matrix[i,j] < 0:
+                    matrix[i,j] = 0
+                    count += 1
+                j += 1
+            i += 1
+        # print(count)
+        return matrix
+
+    def create_batch(self,tmp_list, batch_h):
+        i = 0
+        while i < len(tmp_list):
+            j = i
+            batch_h[i,:] = self.h[tmp_list[i],:]
+            while j < len(tmp_list):
+                self.batch_x[i,j] = self.x[tmp_list[i],tmp_list[j]]
+                self.batch_x[j,i] = self.x[tmp_list[i],tmp_list[j]]
+                j += 1
+            i += 1
+        return batch_h
+
+    def grad(self,x,h):
+        return 4 * (h * h.T * h - x * h)
+    
+    # def check_armijo():
+
 
 # read .gml
 G = nx.read_gml('dolphins-v62-e159/dolphins.gml') # 62 vertices

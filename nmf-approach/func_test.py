@@ -2,7 +2,24 @@ import numpy as np
 import scipy.io as sio
 import random
 
-print(2**-8)
+
+
+matrix = np.asmatrix([[1,-2], [-3,4]])
+
+i = 0
+count = 0
+while i < matrix.shape[0]:
+    j = 0
+    while j < matrix.shape[1]:
+        if matrix[i,j] < 0:
+            matrix[i,j] = 0
+            count += 1
+        j += 1
+    i += 1
+print(count)
+print(matrix, type(matrix))
+
+# print(2**-8)
 
 # a = np.asmatrix(np.zeros((2,2)))
 # hi = 5 #(not include this number)
