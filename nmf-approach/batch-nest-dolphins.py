@@ -32,7 +32,7 @@ class SNMF():
         print("Constructor call: The matrix's row and column are: ", self.x.shape[0], self.x.shape[1], "total iteration: ", self.max_iter)
         
         self.batch_number = batch_number
-        self.batch_number_range = self.x.shape[0]
+        self.number_range = self.x.shape[0]
         self.mini_batch_size = math.ceil(x.shape[0] / self.batch_number)
         self.batch_x = np.asmatrix(np.zeros((self.mini_batch_size,self.mini_batch_size)))
         print("Constructor call: Batch number is : ", batch_number, " with mini_batch_size: ", self.mini_batch_size, "batch_x has shape:", self.batch_x.shape)
@@ -49,10 +49,10 @@ class SNMF():
             error = None
         return error
 
-    def bgd_solver(self, alpha = 0.5, beta = 0.8 , l = 2 , eps = None, debug = None):
-        if(self.batch_number == 1):        # normal MUR
+    def bgd_solver(self, L = 1 , eps = None, debug = None):
+        if (self.batch_number == 1):        # normal MUR
             for iter in range(self.max_iter):
-                self.errors[iter] = LA.norm(self.x - self.h * self.h.T)
+                self.errors[iter] = LA.norm(self.x - self.h * self.h.T, 'fro')
 
                 # if (self.errors[iter] > 1) and (abs(self.errors[iter]-self.errors[iter-1])  < eps):
                 #     # print("error1: ", self.errors[iter], "error2:", self.errors[iter-1])
@@ -63,67 +63,68 @@ class SNMF():
                 denominator = (((self.h*self.h.T)*self.h) + 2 ** -8)
                 self.h = np.multiply(self.h, np.divide(numerator, denominator))
 
-                # count = 0
-                # for i in range(self.h.shape[0]):
-                #     for j in range(self.h.shape[1]):
-                #         # print(self.h[i,j])
-                #         if self.h[i,j]<0:
-                #             count += 1
-                #             print("(", i, ",", j, ")")
-                # print("negative numbers:", count)
+        # elif (self.batch_number == self.number_range):
+        #     for iter in range(self.max_iter):
+        #         self.errors[iter] = LA.norm(self.x - self.h * self.h.T, 'fro')
+        #         rand = random.randint(0, self.number_range - 1)
+                
+        #     print("SGD not implemented yet")
 
         else:
             batch_h = np.asmatrix(np.zeros((self.mini_batch_size, self.r)))         # initialize size of the batch matrix
+
+            lambda_prev = 0
+            lambda_curr = 1
+            gamma = 1
+            alpha = 0.025 * L
+
             for iter in range(self.max_iter):  # stochastic MUR     
-                self.errors[iter] = np.linalg.norm(self.x - self.h * self.h.T, 'fro') # record error
+                self.errors[iter] = LA.norm(self.x - self.h * self.h.T, 'fro') # record error
                 # if (self.errors[iter] > 1) and (abs(self.errors[iter]-self.errors[iter-1])  < eps):
                 #     # print("error1: ", self.errors[iter], "error2:", self.errors[iter-1])
                 #     print("stop condition met at iteration: ", iter)
                 #     return self.h
-                tmp_list = self.generate_random_numbers(upper_bound = self.batch_number_range, num = self.mini_batch_size) # random initilized number list
-                
+                tmp_list = self.generate_random_numbers(upper_bound = self.number_range, num = self.mini_batch_size) # random initilized number list
+                batch_h = self.create_batch(tmp_list, batch_h) 
+                y_prev = batch_h
 
-                batch_h = self.create_batch(tmp_list, batch_h)
-
-                # # an ugly matrix to create random batch matrix
-                # i = 0
-                # while i < len(tmp_list):
-                #     j = i
-                #     batch_h[i,:] = self.h[tmp_list[i],:]
-                #     while j < len(tmp_list):
-                #         self.batch_x[i,j] = self.x[tmp_list[i],tmp_list[j]]
-                #         self.batch_x[j,i] = self.x[tmp_list[i],tmp_list[j]]
-                #         j += 1
-                #     i += 1
-                # print("batch x:", self.batch_x, "size", self.batch_x.shape, "type:", type(self.batch_x))
-                # print("batch h:", batch_h, "size", batch_h.shape, "type:", type(batch_h))
-
-                # numerator = self.batch_x * batch_h
-                # denominator = (((batch_h*batch_h.T)*batch_h) + 0.00001)
-                # update = np.multiply(batch_h, np.divide(numerator, denominator))
-                # print("line 99, update type: ", type(update), "shape:", update.shape, "update[i,:]", update[1,:])
-                # a= batch_h * batch_h.T * batch_h
-                # b= self.batch_x * batch_h
-                # print("a", a, "b", b)
-                
-                # while not check_armijo():
-                #     print(check_armijo)
                 grad = self.grad(self.batch_x, batch_h)
-                
-                # print("grad", grad)
-                update = self.projection(batch_h - alpha * grad)
+
+                y_curr = self.projection(batch_h - alpha * grad)  #starts!!!
+                batch_h = (1 - gamma) * y_curr + gamma * y_prev
+                y_prev = y_curr
+
+                lambda_tmp = lambda_curr
+                lambda_curr = 0.5 * (1 + math.sqrt(1 + 4 * lambda_prev * lambda_prev))
+                lambda_prev = lambda_tmp
+
+                gamma = (1 - lambda_prev) / lambda_curr
 
                 i = 0
                 while i < len(tmp_list):
-                    self.h[tmp_list[i],:] = update[i,:]   
+                    self.h[tmp_list[i],:] = batch_h[i,:]   
                     i += 1
-
-                # lo = random.randint(0, (self.x.shape[0] - self.mini_batch_size - 1))
-                # # print("batch index is: ", lo)
-                # batch_x = self.x[lo: (lo + self.mini_batch_size), lo: (lo + self.mini_batch_size)].todense()  ## correct
-                # batch_h = self.h[lo: (lo + self.mini_batch_size), :] ##correct
-                
         return self.h
+
+
+    # def nesterov_descent(self, x, h, L, grad):
+    #     lambda_pre = 0
+    #     lambda_cur = 1
+    #     gamma = 1
+    #     y_prev = x
+    #     alpha = 0.05 / (2 * L)
+    #     y_curr = x - alpha *  grad
+    #     x = (1 - gamma) * y_curr + gamma * y_prev
+    #     y_prev = y_curr
+
+    #     lambda_tmp = lambda_curr
+    #     lambda_curr = (1 + math.sqrt(1 + 4 * lambda_prev * lambda_prev)) / 2
+    #     lambda_prev = lambda_tmp
+
+    #     gamma = (1 - lambda_prev) / lambda_curr
+
+    #     return x
+
 
     def get_error_trend(self):
         return self.errors
@@ -159,6 +160,8 @@ class SNMF():
             i += 1
         return batch_h
 
+
+
     def grad(self,x,h):
         return 4 * (h * h.T * h - x * h)
     
@@ -181,7 +184,7 @@ print(type(initial_h))
 
 grid1 = A.todense()                                                 # initial x
 grid2 = np.dot(initial_h,initial_h.T)                               # initial h
-A_nmf = SNMF(x=A, r=cluster_num,  h_init = initial_h, batch_number=10, max_iter=10000) # call snmf's constructor
+A_nmf = SNMF(x=A, r=cluster_num,  h_init = initial_h, batch_number=2, max_iter=10000) # call snmf's constructor
 
 
 
@@ -189,7 +192,7 @@ print("Staring error is: ", A_nmf.frobenius_norm())
 print("Start running...")
 t0 = time()
 # result = A_nmf.bgd_solver(alpha = 0.01, eps = 0.000001)       
-result = A_nmf.bgd_solver(alpha = 0.01)                           # run gd, return h
+result = A_nmf.bgd_solver(L = 1)                           # run gd, return h
 t1 = time()
 
 # print(result[0,0])
