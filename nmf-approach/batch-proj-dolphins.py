@@ -96,16 +96,7 @@ class SNMF():
                         self.batch_x[j,i] = self.x[tmp_list[i],tmp_list[j]]
                         j += 1
                     i += 1
-                # print("batch x:", self.batch_x, "size", self.batch_x.shape, "type:", type(self.batch_x))
-                # print("batch h:", batch_h, "size", batch_h.shape, "type:", type(batch_h))
 
-                # numerator = self.batch_x * batch_h
-                # denominator = (((batch_h*batch_h.T)*batch_h) + 0.00001)
-                # update = np.multiply(batch_h, np.divide(numerator, denominator))
-                # print("line 99, update type: ", type(update), "shape:", update.shape, "update[i,:]", update[1,:])
-                # a= batch_h * batch_h.T * batch_h
-                # b= self.batch_x * batch_h
-                # print("a", a, "b", b)
                 grad = 4 * (batch_h * batch_h.T * batch_h - self.batch_x * batch_h)
                 # print("grad", grad)
                 update = batch_h - alpha * grad
@@ -122,18 +113,6 @@ class SNMF():
 
                     self.h[tmp_list[i],:] = update[i,:]   
                     i += 1
-                    # print("count : ",count)
-
-                # lo = random.randint(0, (self.x.shape[0] - self.mini_batch_size - 1))
-                # # print("batch index is: ", lo)
-                # batch_x = self.x[lo: (lo + self.mini_batch_size), lo: (lo + self.mini_batch_size)].todense()  ## correct
-                # batch_h = self.h[lo: (lo + self.mini_batch_size), :] ##correct
-                
-                # batch_h = 
-
-                # self.h[lo: (lo + self.mini_batch_size), :] = np.multiply(batch_h, ((batch_x * batch_h) / (((batch_h* batch_h.T)*batch_h) + 2 ** -8)))
-                # print("Test Tmp shape: ", np.shape(tmp), "and its value: \n", tmp)
- 
         return self.h
 
     def get_error_trend(self):
@@ -144,51 +123,95 @@ class SNMF():
         seq = list(range(0,upper_bound))
         return random.sample(seq,num)
 
-# read .gml
-G = nx.read_gml('dolphins-v62-e159/dolphins.gml') # 62 vertices
-cluster_num = 2
 
+"""
+----------------------------------------EmailEuCore----------------------------------------
+"""
+G = nx.Graph()
+with open('email-v1005-e25571-c42/email-Eu-core.txt','r') as f:
+    for line in f:
+        line=line.split()#split the line up into a list - the first entry will be the node, the others his friends
+        # print(len(line), "cont", line[0])
+        if len(line)==1:#in case the node has no friends, we should still add him to the network
+            if line[0] not in G:
+                nx.add_node(line[0])
+        else:#in case the node has friends, loop over all the entries in the list
+            focal_node = line[0]#pick your node
+            print(line[1:])
+            for friend in line[1:]:#loop over the friends
+                if friend != focal_node:
+                    G.add_edge(focal_node,friend)#add each edge to the graph
 
-A = nx.adjacency_matrix(G)   #(62，62)                                           # get adjacency matrix
-# print("line 126, type of dense A:" , type(A.todense()))                        # <class 'scipy.sparse.csr.csr_matrix'>,  
-                                                                                 # to dense: <class 'numpy.matrixlib.defmatrix.matrix'>
+cluster_num = 42
+t0 = time()
+A = nx.adjacency_matrix(G)   #(1005，1005)
+t1 = time()
+
 initial_h = np.asmatrix(np.random.rand(A.shape[0], cluster_num))                 # h's initialization, as a matrix
-# initial_h = np.asmatrix(np.ones((A.shape[0], cluster_num)))
-print(type(initial_h))
-# print("line 127, type of initial_h" , type(initial_h), "shape: ", initial_h.shape)
-# print("initial h [1]::::: ",initial_h[0,0])
 
 grid1 = A.todense()                                                 # initial x
 grid2 = np.dot(initial_h,initial_h.T)                               # initial h
-A_nmf = SNMF(x=A, r=cluster_num,  h_init = initial_h, batch_number=10, max_iter=10000) # call snmf's constructor
-
-
+A_nmf = SNMF(x=A, r=cluster_num,  h_init = initial_h, batch_number=10, max_iter=1000) # call snmf's constructor
 
 print("Staring error is: ", A_nmf.frobenius_norm())
 print("Start running...")
 t0 = time()
 # result = A_nmf.bgd_solver(alpha = 0.01, eps = 0.000001)       
-result = A_nmf.bgd_solver(alpha = 0.01)                           # run gd, return h
+result = A_nmf.bgd_solver()                           # run gd, return h
 t1 = time()
 
-# print(result[0,0])
-print('Final error is: ', A_nmf.frobenius_norm(), 'Time taken: ', t1 - t0)
+print('Final error is: ', A_nmf.frobenius_norm(), '\nTime taken: ', t1 - t0)
 
-dolphins = sio.loadmat('dolphins-v62-e159/dolphins_rlabels')
-label = dolphins['labels'].T
 
-correct_count = 0
-for i in range(result.shape[0]):
-    if result[i,0] < result[i,1]:
-        # print(label[i], "-- 1")
-        if label[i] == 1:
-            correct_count += 1
-    else:
-        # print(label[i],  "-- 2")
-        if label[i] == 2:
-            correct_count += 1
+"""
+----------------------------------------Dolphin----------------------------------------
+"""
 
-print("correct_count: ", correct_count)
+# # read .gml
+# G = nx.read_gml('dolphins-v62-e159/dolphins.gml') # 62 vertices
+# cluster_num = 2
+
+
+# A = nx.adjacency_matrix(G)   #(62，62)                                           # get adjacency matrix
+# # print("line 126, type of dense A:" , type(A.todense()))                        # <class 'scipy.sparse.csr.csr_matrix'>,  
+#                                                                                  # to dense: <class 'numpy.matrixlib.defmatrix.matrix'>
+# initial_h = np.asmatrix(np.random.rand(A.shape[0], cluster_num))                 # h's initialization, as a matrix
+# # initial_h = np.asmatrix(np.ones((A.shape[0], cluster_num)))
+# print(type(initial_h))
+# # print("line 127, type of initial_h" , type(initial_h), "shape: ", initial_h.shape)
+# # print("initial h [1]::::: ",initial_h[0,0])
+
+# grid1 = A.todense()                                                 # initial x
+# grid2 = np.dot(initial_h,initial_h.T)                               # initial h
+# A_nmf = SNMF(x=A, r=cluster_num,  h_init = initial_h, batch_number=10, max_iter=10000) # call snmf's constructor
+
+
+
+# print("Staring error is: ", A_nmf.frobenius_norm())
+# print("Start running...")
+# t0 = time()
+# # result = A_nmf.bgd_solver(alpha = 0.01, eps = 0.000001)       
+# result = A_nmf.bgd_solver(alpha = 0.01)                           # run gd, return h
+# t1 = time()
+
+# # print(result[0,0])
+# print('Final error is: ', A_nmf.frobenius_norm(), 'Time taken: ', t1 - t0)
+
+# dolphins = sio.loadmat('dolphins-v62-e159/dolphins_rlabels')
+# label = dolphins['labels'].T
+
+# correct_count = 0
+# for i in range(result.shape[0]):
+#     if result[i,0] < result[i,1]:
+#         # print(label[i], "-- 1")
+#         if label[i] == 1:
+#             correct_count += 1
+#     else:
+#         # print(label[i],  "-- 2")
+#         if label[i] == 2:
+#             correct_count += 1
+
+# print("correct_count: ", correct_count)
 
 """
 ----------------------------------------PLOT----------------------------------------
