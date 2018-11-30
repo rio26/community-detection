@@ -49,7 +49,9 @@ class SNMF():
             error = None
         return error
 
-    def bgd_solver(self, L = 1 , eps = None, debug = None):
+    ## method 1: normal gradient descent
+    ## method 2: nesterov's accerlate gradient descent
+    def bgd_solver(self, L = 1 , alpha = 0.001, eps = None, debug = None, method = 1):
         if (self.batch_number == 1):        # normal MUR
             for iter in range(self.max_iter):
                 self.errors[iter] = LA.norm(self.x - self.h * self.h.T, 'fro')
@@ -69,7 +71,32 @@ class SNMF():
         #         rand = random.randint(0, self.number_range - 1)
                 
         #     print("SGD not implemented yet")
+        elif (method==1):
+            batch_h = np.asmatrix(np.zeros((self.mini_batch_size,self.r)))
+            for iter in range(self.max_iter):  # stochastic MUR     
+                self.errors[iter] = np.linalg.norm(self.x - self.h * self.h.T, 'fro') # record error
+                # if (self.errors[iter] > 1) and (abs(self.errors[iter]-self.errors[iter-1])  < eps):
+                #     # print("error1: ", self.errors[iter], "error2:", self.errors[iter-1])
+                #     print("stop condition met at iteration: ", iter)
+                #     return self.h
 
+                tmp_list = self.generate_random_numbers(upper_bound = self.number_range, num = self.mini_batch_size)
+                batch_h = self.create_batch(tmp_list, batch_h) 
+                grad = self.grad(self.batch_x, batch_h)
+                update = batch_h - alpha * grad
+
+                i = 0
+                while i < len(tmp_list):
+                    j = 0
+                    count = 0
+                    while j < update.shape[1]:
+                        if update[i,j] < 0:
+                            update[i,j] = 0
+                            count += 1
+                        j += 1
+
+                    self.h[tmp_list[i],:] = update[i,:]   
+                    i += 1
         else:
             batch_h = np.asmatrix(np.zeros((self.mini_batch_size, self.r)))         # initialize size of the batch matrix
 
@@ -179,8 +206,10 @@ with open('email-v1005-e25571-c42/email-Eu-core.txt','r') as f:
                 nx.add_node(line[0])
         else:#in case the node has friends, loop over all the entries in the list
             focal_node = line[0]#pick your node
+            # print(line[1:])
             for friend in line[1:]:#loop over the friends
-                G.add_edge(focal_node,friend)#add each edge to the graph
+                if friend != focal_node:
+                    G.add_edge(focal_node,friend)#add each edge to the graph
 
 cluster_num = 42
 t0 = time()
@@ -191,7 +220,7 @@ initial_h = np.asmatrix(np.random.rand(A.shape[0], cluster_num))                
 
 grid1 = A.todense()                                                 # initial x
 grid2 = np.dot(initial_h,initial_h.T)                               # initial h
-A_nmf = SNMF(x=A, r=cluster_num,  h_init = initial_h, batch_number=42, max_iter=4) # call snmf's constructor
+A_nmf = SNMF(x=A, r=cluster_num,  h_init = initial_h, batch_number=1, max_iter=100) # call snmf's constructor
 
 print("Staring error is: ", A_nmf.frobenius_norm())
 print("Start running...")
@@ -201,6 +230,19 @@ result = A_nmf.bgd_solver(L = 1)                           # run gd, return h
 t1 = time()
 
 print('Final error is: ', A_nmf.frobenius_norm(), '\nTime taken: ', t1 - t0)
+
+text_file = open('email-v1005-e25571-c42/output.txt','w')
+index = 0
+for row in range(result.shape[0]):
+    max_id = 0
+    for col in range(1, result.shape[1]):
+        if result[row, col] > result[row, col-1]:
+            max_id = col
+    text_file.write("%s %s\n" % (row, max_id))
+    # print("%s %s\n" % (row, max_id))
+    index = 0
+
+text_file.close()
 
 """
 ----------------------------------------dolphins----------------------------------------

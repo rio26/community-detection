@@ -50,7 +50,7 @@ class SNMF():
             error = None
         return error
 
-    def bgd_solver(self, alpha = 0.01, eps = None, debug = None):
+    def bgd_solver(self, alpha = 0.001, eps = None, debug = None):
         if(self.batch_number == 1):        # normal MUR
             for iter in range(self.max_iter):
                 self.errors[iter] = LA.norm(self.x - self.h * self.h.T)
@@ -137,7 +137,7 @@ with open('email-v1005-e25571-c42/email-Eu-core.txt','r') as f:
                 nx.add_node(line[0])
         else:#in case the node has friends, loop over all the entries in the list
             focal_node = line[0]#pick your node
-            print(line[1:])
+            # print(line[1:])
             for friend in line[1:]:#loop over the friends
                 if friend != focal_node:
                     G.add_edge(focal_node,friend)#add each edge to the graph
@@ -147,21 +147,57 @@ t0 = time()
 A = nx.adjacency_matrix(G)   #(1005，1005)
 t1 = time()
 
+### Output degrees of this graph
+# text_file1 = open('email-v1005-e25571-c42/degree.txt','w')
+# for s in G.degree():
+#     for s1 in s:
+#         text_file1.write("%s " % (s1))
+#     text_file1.write("\n")
+# text_file1.close()
+
+
+# count = 0
+# for n in range(A.shape[0]):
+#     if A[n,n] != 0:
+#         count += 1
+# print(count," count ========")
+
 initial_h = np.asmatrix(np.random.rand(A.shape[0], cluster_num))                 # h's initialization, as a matrix
 
 grid1 = A.todense()                                                 # initial x
 grid2 = np.dot(initial_h,initial_h.T)                               # initial h
-A_nmf = SNMF(x=A, r=cluster_num,  h_init = initial_h, batch_number=10, max_iter=1000) # call snmf's constructor
+A_nmf = SNMF(x=A, r=cluster_num,  h_init = initial_h, batch_number=10, max_iter=40) # call snmf's constructor
 
 print("Staring error is: ", A_nmf.frobenius_norm())
 print("Start running...")
 t0 = time()
 # result = A_nmf.bgd_solver(alpha = 0.01, eps = 0.000001)       
-result = A_nmf.bgd_solver()                           # run gd, return h
+result = A_nmf.bgd_solver(alpha = 0.01)                           # run gd, return h
 t1 = time()
 
 print('Final error is: ', A_nmf.frobenius_norm(), '\nTime taken: ', t1 - t0)
 
+
+# cluster_result = np.zeros(result.shape)   #(986, 42)
+# print(cluster_result.shape,"type:", type(cluster_result))
+
+text_file = open('email-v1005-e25571-c42/output.txt','w')
+index = 0
+for row in range(result.shape[0]):
+    max_id = 0
+    for col in range(1, result.shape[1]):
+        if result[row, col] > result[row, col-1]:
+            max_id = col
+    text_file.write("%s %s\n" % (row, max_id))
+    # print("%s %s\n" % (row, max_id))
+    index = 0
+
+text_file.close()
+
+
+
+# print("final result for H has shape:", result.shape)
+# print("clustering result", np.amax(result.T, axis=1))  # 0 for row, 1 for column
 
 """
 ----------------------------------------Dolphin----------------------------------------
@@ -217,7 +253,6 @@ print('Final error is: ', A_nmf.frobenius_norm(), '\nTime taken: ', t1 - t0)
 ----------------------------------------PLOT----------------------------------------
 """
 
-
 plt.plot(A_nmf.get_error_trend())
 plt.show()
 
@@ -227,19 +262,25 @@ grid3 = np.dot(result,result.T)     # result matrix
 fig = plt.figure()
 
 # subplot 1, initial matrix
-ax = fig.add_subplot(131)
+ax = fig.add_subplot(141)
 im = ax.imshow(grid1)
 plt.colorbar(im)
 
 # subplot 2, color map
-ax = fig.add_subplot(132)
+ax = fig.add_subplot(142)
 im = ax.imshow(grid2)
 plt.colorbar(im)
 
-ax = fig.add_subplot(133)
+ax = fig.add_subplot(143)
 im = ax.imshow(grid3)
+plt.colorbar(im)
+
+# subplot 2, color map
+ax = fig.add_subplot(144)
+im = ax.imshow(result)
 plt.colorbar(im)
 
 
 plt.tight_layout()
 plt.show()
+
