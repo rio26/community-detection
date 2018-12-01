@@ -135,26 +135,6 @@ class SNMF():
                     i += 1
         return self.h
 
-
-    # def nesterov_descent(self, x, h, L, grad):
-    #     lambda_pre = 0
-    #     lambda_cur = 1
-    #     gamma = 1
-    #     y_prev = x
-    #     alpha = 0.05 / (2 * L)
-    #     y_curr = x - alpha *  grad
-    #     x = (1 - gamma) * y_curr + gamma * y_prev
-    #     y_prev = y_curr
-
-    #     lambda_tmp = lambda_curr
-    #     lambda_curr = (1 + math.sqrt(1 + 4 * lambda_prev * lambda_prev)) / 2
-    #     lambda_prev = lambda_tmp
-
-    #     gamma = (1 - lambda_prev) / lambda_curr
-
-    #     return x
-
-
     def get_error_trend(self):
         return self.errors
 
